@@ -1,7 +1,12 @@
-const { SlashCommand, ComponentType, ButtonStyle, CommandOptionType, TextInputStyle } = require('slash-create');
+import { CommandContext, SlashCreator } from 'slash-create';
+
+const { SlashCommand, ComponentType, ButtonStyle, CommandOptionType } = require('slash-create');
+
+// eslint-disable-next-line no-undef
+declare const kv: KVNamespace;
 
 module.exports = class ButtonCommand extends SlashCommand {
-  constructor(creator) {
+  constructor(creator: SlashCreator) {
     super(creator, {
       name: 'button',
       description: 'Show some buttons.',
@@ -34,7 +39,7 @@ module.exports = class ButtonCommand extends SlashCommand {
         },
         {
           name: 'button_text',
-          description: "The text on the button.",
+          description: 'The text on the button.',
           type: CommandOptionType.STRING,
           required: true
         },
@@ -74,12 +79,14 @@ module.exports = class ButtonCommand extends SlashCommand {
     });
   }
 
-  async run(ctx) {
-
-    await kv.put(ctx.data.id, JSON.stringify({
-      type: 'OPTIONS',
-      data: ctx.options
-    }))
+  async run(ctx: CommandContext) {
+    await kv.put(
+      ctx.data.id,
+      JSON.stringify({
+        type: 'OPTIONS',
+        data: ctx.options
+      })
+    );
 
     await ctx.defer();
     await ctx.send('', {
@@ -97,7 +104,7 @@ module.exports = class ButtonCommand extends SlashCommand {
               type: ComponentType.BUTTON,
               style: ButtonStyle.PRIMARY,
               label: ctx.options.button_text,
-              custom_id: ctx.data.id,
+              custom_id: ctx.data.id
             }
           ]
         }

@@ -22,26 +22,25 @@ creator.on('commandError', (command, error) =>
   console.error(`Command ${command.commandName} errored:`, error.stack || error.toString())
 );
 
-creator.on("modalInteraction", async (ctx) => {
+creator.on('modalInteraction', async (ctx) => {
+  const kvdata: any = await kv.get(ctx.customID, { type: 'json' });
 
-  let kvdata: any = await kv.get(ctx.customID, {type: "json"})
+  console.log('got');
 
-  console.log("got")
-
-  await kv.put(ctx.data.id, JSON.stringify(
-    {
+  await kv.put(
+    ctx.data.id,
+    JSON.stringify({
       type: 'APPLICATION',
       data: {
         user: ctx.user.id,
         role: kvdata.data.role
       }
-    }
-  ))
+    })
+  );
 
-  console.log(JSON.stringify(ctx.values['question1']))
+  console.log(JSON.stringify(ctx.values['question1']));
 
-  await creator.requestHandler.request('POST', `/channels/${kvdata.data.mod_channel}/messages`, true,
-  {
+  await creator.requestHandler.request('POST', `/channels/${kvdata.data.mod_channel}/messages`, true, {
     content: `New application for <@&${kvdata.data.role}> submitted by <@${ctx.user.id}>!`,
     allowed_mentions: {
       parse: []
@@ -68,11 +67,10 @@ creator.on("modalInteraction", async (ctx) => {
         ]
       }
     ]
-  }
-  );
+  });
 
-  ctx.send("Your application has been submitted.", {ephemeral: true})
-})
+  ctx.send('Your application has been submitted.', { ephemeral: true });
+});
 
 creator.on('componentInteraction', async (ctx) => {
   /**
@@ -83,7 +81,7 @@ creator.on('componentInteraction', async (ctx) => {
    * new functions like `ctx.acknowledge` and `ctx.editParent`.
    */
 
-  let kvdata: any = await kv.get(ctx.customID, {type: "json"})
+  const kvdata: any = await kv.get(ctx.customID, { type: 'json' });
 
   if (kvdata.type === 'OPTIONS'){
     const baseOptions: ModalOptions = {
@@ -108,8 +106,10 @@ creator.on('componentInteraction', async (ctx) => {
     await ctx.sendModal(baseOptions)
 
   } else if (kvdata.type === 'APPLICATION'){
-    creator.requestHandler.request('PUT', `/guilds/${ctx.guildID}/members/${kvdata.data.user}/roles/${kvdata.data.role}`)
-    ctx.send("Hopefully that should be approved now.")
+    creator.requestHandler.request(
+      'PUT',
+      `/guilds/${ctx.guildID}/members/${kvdata.data.user}/roles/${kvdata.data.role}`
+    );
+    ctx.send('Hopefully that should be approved now.');
   }
-
 });
