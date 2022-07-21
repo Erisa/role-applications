@@ -25,15 +25,20 @@ creator.on('commandError', (command, error) =>
 creator.on('modalInteraction', async (ctx) => {
   const kvdata: any = await kv.get(ctx.customID, { type: 'json' });
 
-  console.log('got');
-
   await kv.put(
     ctx.data.id,
     JSON.stringify({
       type: 'APPLICATION',
       data: {
         user: ctx.user.id,
-        role: kvdata.data.role
+        role: kvdata.data.role,
+        answers: [
+          {
+            question: kvdata.data.question1_title,
+            answer: ctx.values['question1']
+          }
+        ],
+        options_state_key: ctx.customID
       }
     })
   );
@@ -73,17 +78,11 @@ creator.on('modalInteraction', async (ctx) => {
 });
 
 creator.on('componentInteraction', async (ctx) => {
-  /**
-   * This context object is similar to command context as it will
-   * still automatically acknowledge the interaction.
-   *
-   * You can still use `ctx.send` and `ctx.defer` however, there are
-   * new functions like `ctx.acknowledge` and `ctx.editParent`.
-   */
-
+  // we kept all the state in KV because it lets us store more.
+  // the custom ID is the key and tells us where the state is
   const kvdata: any = await kv.get(ctx.customID, { type: 'json' });
 
-  if (kvdata.type === 'OPTIONS'){
+  if (kvdata.type === 'OPTIONS') {
     const baseOptions: ModalOptions = {
       title: kvdata.data.title,
       components: [
@@ -102,10 +101,8 @@ creator.on('componentInteraction', async (ctx) => {
       ],
       custom_id: ctx.customID
     };
-
-    await ctx.sendModal(baseOptions)
-
-  } else if (kvdata.type === 'APPLICATION'){
+    await ctx.sendModal(baseOptions);
+  } else if (kvdata.type === 'APPLICATION') {
     creator.requestHandler.request(
       'PUT',
       `/guilds/${ctx.guildID}/members/${kvdata.data.user}/roles/${kvdata.data.role}`
