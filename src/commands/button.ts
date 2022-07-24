@@ -1,9 +1,11 @@
+import { Database } from '@cloudflare/d1';
 import { CommandContext, SlashCreator } from 'slash-create';
+import { SlashCommand, ComponentType, ButtonStyle, CommandOptionType } from 'slash-create';
 
-const { SlashCommand, ComponentType, ButtonStyle, CommandOptionType } = require('slash-create');
-
-// eslint-disable-next-line no-undef
-declare const kv: KVNamespace;
+// D1 bindings are not supported for service workers yet.
+// declare const db: Database;
+declare const db_binding: any; // DatabaseBinding
+const db = new Database(db_binding);
 
 module.exports = class ButtonCommand extends SlashCommand {
   constructor(creator: SlashCreator) {
@@ -68,7 +70,7 @@ module.exports = class ButtonCommand extends SlashCommand {
         {
           name: 'welcome_channel',
           description: 'The channel to welcome the user in, if approved',
-          type: CommandOptionType.STRING
+          type: CommandOptionType.CHANNEL
         },
         {
           name: 'welcome_text',
@@ -80,15 +82,30 @@ module.exports = class ButtonCommand extends SlashCommand {
   }
 
   async run(ctx: CommandContext) {
-    await kv.put(
-      ctx.data.id,
-      JSON.stringify({
-        type: 'OPTIONS',
-        data: ctx.options
-      })
-    );
-
     await ctx.defer();
+
+    await db
+      .prepare(
+        'INSERT INTO options (id, title, description, role_id, mod_channel, button_text, welcome_channel, welcome_text) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)'
+      )
+      .bind(
+        ctx.data.id,
+        ctx.options['title'],
+        ctx.options['description'],
+        ctx.options['role'],
+        ctx.options['mod_channel'],
+        ctx.options['button_text'],
+        ctx.options['welcome_channel'],
+        ctx.options['welcome_text']
+      )
+      .run();
+
+    // Question ID is [optionsId]-[questionNumber]
+    await db
+      .prepare('INSERT INTO questions (id, options_id, title, type) VALUES (?1, ?2, ?3, ?4)')
+      .bind(`${ctx.data.id}-1`, ctx.data.id, ctx.options['question1_title'], ctx.options['question1_type'])
+      .run();
+
     await ctx.send('', {
       embeds: [
         {
@@ -104,7 +121,7 @@ module.exports = class ButtonCommand extends SlashCommand {
               type: ComponentType.BUTTON,
               style: ButtonStyle.PRIMARY,
               label: ctx.options.button_text,
-              custom_id: ctx.data.id
+              custom_id: `options-${ctx.data.id}`
             }
           ]
         }

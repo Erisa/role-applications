@@ -8,3 +8,16 @@ port = 8020
 
 [build]
 command = "npm run build"
+
+# This will be used in the future. When running migrations please uncomment this for autodetection.
+# [[d1_databases]]
+# binding = "db"
+# database_name = "roles"
+# database_id = "9892d0b0-437c-4eee-bdf3-a257f873ff27"
+# preview_database_id = "9892d0b0-437c-4eee-bdf3-a257f873ff27"
+
+# D1 bindings are not supported for service workers yet.
+[[unsafe.bindings]]
+name = "db_binding"
+type = "d1"
+id = "9892d0b0-437c-4eee-bdf3-a257f873ff27"
