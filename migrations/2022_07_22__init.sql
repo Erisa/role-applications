@@ -1,4 +1,4 @@
-CREATE TABLE options (
+CREATE TABLE prompts (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -11,23 +11,22 @@ CREATE TABLE options (
 
 CREATE TABLE questions (
     id TEXT PRIMARY KEY,
-    options_id INT,
+    prompt_id TEXT,
     title TEXT NOT NULL,
     type TEXT CHECK(type IN ('PARAGRAPH', 'SHORT')) NOT NULL,
-    FOREIGN KEY (options_id) REFERENCES options (id)
+    FOREIGN KEY (prompt_id) REFERENCES prompts (id)
 );
 
 CREATE TABLE applications (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
-    role_id TEXT NOT NULL,
-    options_id TEXT NOT NULL,
-    FOREIGN KEY (options_id) REFERENCES options (id)
+    prompt_id TEXT NOT NULL,
+    FOREIGN KEY (prompt_id) REFERENCES prompts (id)
 );
 
 CREATE TABLE answers (
-    question_id INT,
-    application_id INT,
+    question_id TEXT,
+    application_id TEXT,
     text TEXT,
     FOREIGN KEY (question_id) REFERENCES questions (id),
     FOREIGN KEY (application_id) REFERENCES applications (id)

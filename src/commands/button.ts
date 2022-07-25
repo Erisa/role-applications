@@ -86,7 +86,7 @@ module.exports = class ButtonCommand extends SlashCommand {
 
     await db
       .prepare(
-        'INSERT INTO options (id, title, description, role_id, mod_channel, button_text, welcome_channel, welcome_text) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)'
+        'INSERT INTO prompts (id, title, description, role_id, mod_channel, button_text, welcome_channel, welcome_text) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)'
       )
       .bind(
         ctx.data.id,
@@ -100,9 +100,9 @@ module.exports = class ButtonCommand extends SlashCommand {
       )
       .run();
 
-    // Question ID is [optionsId]-[questionNumber]
+    // Question ID is [promptId]-[questionNumber]
     await db
-      .prepare('INSERT INTO questions (id, options_id, title, type) VALUES (?1, ?2, ?3, ?4)')
+      .prepare('INSERT INTO questions (id, prompt_id, title, type) VALUES (?1, ?2, ?3, ?4)')
       .bind(`${ctx.data.id}-1`, ctx.data.id, ctx.options['question1_title'], ctx.options['question1_type'])
       .run();
 
@@ -121,7 +121,7 @@ module.exports = class ButtonCommand extends SlashCommand {
               type: ComponentType.BUTTON,
               style: ButtonStyle.PRIMARY,
               label: ctx.options.button_text,
-              custom_id: `options-${ctx.data.id}`
+              custom_id: `prompt-${ctx.data.id}`
             }
           ]
         }

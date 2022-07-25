@@ -35,19 +35,19 @@ creator.on('commandError', (command, error) =>
 );
 
 creator.on('modalInteraction', async (ctx) => {
-  const options: any = await db.prepare('SELECT * FROM options WHERE id = ?').bind(ctx.customID).first();
+  const prompt: any = await db.prepare('SELECT * FROM prompts WHERE id = ?').bind(ctx.customID).first();
 
   await db
-    .prepare('INSERT INTO applications (id, user_id, role_id, options_id) VALUES (?1, ?2, ?3, ?4)')
-    .bind(ctx.data.id, ctx.user.id, options.role_id, options.id)
+    .prepare('INSERT INTO applications (id, user_id, prompt_id) VALUES (?1, ?2, ?3)')
+    .bind(ctx.data.id, ctx.user.id, prompt.id)
     .run();
 
   console.log(ctx.data.id);
 
-  console.log(options.id);
+  console.log(prompt.id);
   const question: any = await db
-    .prepare('SELECT id, title FROM questions WHERE options_id = ?')
-    .bind(options.id)
+    .prepare('SELECT id, title FROM questions WHERE prompt_id = ?')
+    .bind(prompt.id)
     .first();
 
   console.log(question);
@@ -57,8 +57,8 @@ creator.on('modalInteraction', async (ctx) => {
     .bind(question.id, ctx.data.id, ctx.values[question.id])
     .run();
 
-  await creator.requestHandler.request('POST', `/channels/${options.mod_channel}/messages`, true, {
-    content: `New application for <@&${options.role_id}> submitted by <@${ctx.user.id}>!`,
+  await creator.requestHandler.request('POST', `/channels/${prompt.mod_channel}/messages`, true, {
+    content: `New application for <@&${prompt.role_id}> submitted by <@${ctx.user.id}>!`,
     allowed_mentions: {
       parse: []
     },
@@ -93,10 +93,10 @@ creator.on('componentInteraction', async (ctx) => {
   // we kept all the state in D1 because it lets us store more.
   // the custom ID is the type of data and the key to tell us where the state is
 
-  if (ctx.customID.startsWith('options-')) {
-    const optionsId = ctx.customID.substring('options-'.length);
-    const options: any = await db.prepare(`SELECT * FROM options WHERE id = ?`).bind(optionsId).first();
-    const questions = await db.prepare(`SELECT * FROM questions WHERE options_id = ?`).bind(options.id).all();
+  if (ctx.customID.startsWith('prompt-')) {
+    const promptId = ctx.customID.substring('prompt-'.length);
+    const prompt: any = await db.prepare('SELECT * FROM prompts WHERE id = ?').bind(promptId).first();
+    const questions = await db.prepare('SELECT * FROM questions WHERE prompt_id = ?').bind(prompt.id).all();
     if (hasResults<any>(questions)) {
       const baseOptions: ModalOptions = {
         title: questions.results[0].title,
@@ -107,24 +107,25 @@ creator.on('componentInteraction', async (ctx) => {
               {
                 type: ComponentType.TEXT_INPUT,
                 label: questions.results[0].title,
-                custom_id: `${optionsId}-1`, // Question ID is [optionsId]-[questionNumber]
+                custom_id: `${promptId}-1`, // Question ID is [promptId]-[questionNumber]
                 style: questions.results[0].type === 'SHORT' ? TextInputStyle.SHORT : TextInputStyle.PARAGRAPH,
                 max_length: 4000
               }
             ]
           }
         ],
-        custom_id: optionsId
+        custom_id: promptId
       };
       await ctx.sendModal(baseOptions);
     }
   } else if (ctx.customID.startsWith('application-')) {
     const applicationId = ctx.customID.substring('application-'.length);
-    const application: any = await db.prepare(`SELECT * FROM applications WHERE id = ?`).bind(applicationId).first();
-    console.log(`Approved ${application.user_id} ${application.role_id}`);
+    const application: any = await db.prepare('SELECT * FROM applications WHERE id = ?').bind(applicationId).first();
+    const prompt: any = await db.prepare('SELECT role_id FROM prompts WHERE id = ?').bind(application.prompt_id).first();
+    console.log(`Approved ${application.user_id} ${prompt.role_id}`);
     creator.requestHandler.request(
       'PUT',
-      `/guilds/${ctx.guildID}/members/${application.user_id}/roles/${application.role_id}`
+      `/guilds/${ctx.guildID}/members/${application.user_id}/roles/${prompt.role_id}`
     );
     ctx.send('Hopefully that should be approved now.');
   }
