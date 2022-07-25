@@ -2,30 +2,57 @@ import fs from 'fs/promises';
 import fetch from 'node-fetch';
 import process from 'process';
 import toml from 'toml';
-
+import dotenv from 'dotenv';
 import { homedir } from 'os';
 
-const verbose = true;
+dotenv.config();
 
-if (process.argv.length < 3) {
-  console.error('Usage: [db_name]');
+const verbose = !!process.env.VERBOSE;
+
+let dbId = process.env.DATABASE_ID;
+
+let wranglerToml;
+if (!dbId) {
+  if (process.argv.length < 3) {
+    console.error('Usage: [db_name]');
+    process.exit(1);
+  }
+
+  const dbName = process.argv[2];
+
+  wranglerToml = toml.parse(await fs.readFile('wrangler.toml'));
+  dbId = wranglerToml.d1_databases.find((d) => d.database_name === dbName).database_id;
+}
+
+if (!dbId) {
+  console.error('[ERROR] Missing DATABASE_ID');
   process.exit(1);
 }
 
-const dbName = process.argv[2];
+if (verbose) console.log(`[DEBUG] db: ${dbId}`);
 
-const wranglerToml = toml.parse(await fs.readFile('wrangler.toml'));
-const db = wranglerToml.d1_databases.find((d) => d.database_name === dbName).database_id;
-if (verbose) console.log(`[DEBUG] db: ${db}`);
+const accountId = process.env.CF_ACCOUNT_ID || wranglerToml?.account_id;
+if (!accountId) {
+  console.error('[ERROR] Missing CF_ACCOUNT_ID');
+  process.exit(1);
+}
 
-const accountId = wranglerToml.account_id;
+let oauthToken = process.env.CF_API_KEY;
+if (!oauthToken) {
+  try {
+    const config = toml.parse(await fs.readFile(`${homedir()}/.config/.wrangler/config/default.toml`));
+    oauthToken = config.oauth_token;
+  } catch {}
 
-const config = toml.parse(await fs.readFile(`${homedir()}/.config/.wrangler/config/default.toml`));
-const oauthToken = config.oauth_token;
+  if (!oauthToken) {
+    console.error('[ERROR] Missing CF_API_KEY');
+    process.exit(1);
+  }
+}
 
 async function execute(sql) {
   // Get the current version
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${db}/query`, {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${dbId}/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
